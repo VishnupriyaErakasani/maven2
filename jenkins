@@ -15,7 +15,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Pull code from your Git repository
-                git branch: 'main', url: 'https://github.com/VishnupriyaErakasani/maven-int.git'
+                git branch: 'main', url: 'https://github.com/VishnupriyaErakasani/maven2.git'
             }
         }
 
