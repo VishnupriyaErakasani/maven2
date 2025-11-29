@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    triggers {
+        // Automatically trigger build when a new commit is pushed (via webhook)
+        pollSCM('* * * * *')  // or replace with GitHub webhook
+    }
+
+    tools {
+        maven 'MAVEN_HOME'   // Maven installation configured in Jenkins (Manage Jenkins → Global Tool Configuration)
+        jdk 'JDK17'          // JDK configured in Jenkins
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Pull code from your Git repository
+                git branch: 'main', url: 'https://github.com/VishnupriyaErakasani/maven-int.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building Maven project..."
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "Running Unit Tests..."
+                sh 'mvn test'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo "Packaging application..."
+                sh 'mvn package'
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Build succeeded!'
+        }
+        failure {
+            echo '❌ Build failed!'
+        }
+    }
+}
