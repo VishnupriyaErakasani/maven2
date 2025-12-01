@@ -1,58 +1,61 @@
 pipeline {
-    agent any
-
-    triggers {
-        // Automatically trigger build when a new commit is pushed (via webhook)
-        pollSCM('* * * * *')  // or replace with GitHub webhook
-    }
+    agent none
 
     tools {
-        maven 'MAVEN_HOME'   // Maven installation configured in Jenkins (Manage Jenkins → Global Tool Configuration)
-        jdk 'JDK17'          // JDK configured in Jenkins
+        maven 'M3.9'
     }
 
     stages {
+
+        stage('Where am I (Controller)') {
+            agent { label 'built-in' }
+            steps {
+                echo "NODE = ${env.NODE_NAME}"
+                echo "WORKSPACE = ${env.WORKSPACE}"
+            }
+        }
+
         stage('Checkout') {
+            
+            agent { label 'win' }
             steps {
-                // Pull code from your Git repository
-                git branch: 'main', url: 'https://github.com/VishnupriyaErakasani/maven2.git'
+                checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build & Test') {
+            agent { label 'win' }
             steps {
-                echo "Building Maven project..."
-                sh 'mvn clean compile'
+                script {
+                    bat 'mvn -B clean test'
+                    bat 'mvn -B package'
+                }
             }
         }
 
-        stage('Test') {
+        stage('Archive') {
+            agent { label 'win' }
             steps {
-                echo "Running Unit Tests..."
-                sh 'mvn test'
-            }
-        }
-
-        stage('Package') {
-            steps {
-                echo "Packaging application..."
-                sh 'mvn package'
-            }
-        }
-
-        stage('Archive Artifacts') {
-            steps {
+                junit 'target/surefire-reports/*.xml'
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
-    }
 
-    post {
-        success {
-            echo '✅ Build succeeded!'
-        }
-        failure {
-            echo '❌ Build failed!'
+        stage('Parallel: Controller vs Agent') {
+            parallel {
+                stage('Controller lane') {
+                    agent { label 'built-in' }
+                    steps {
+                        echo "PARALLEL NODE = ${env.NODE_NAME}"
+                    }
+                }
+                stage('Agent lane') {
+                    agent { label 'win' }
+                    steps {
+                        bat "echo PARALLEL NODE = %NODE_NAME%"
+                    }
+                }
+            }
         }
     }
 }
